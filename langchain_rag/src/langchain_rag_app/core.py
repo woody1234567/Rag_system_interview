@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -25,6 +26,11 @@ def project_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def load_env() -> None:
+    env_path = project_root() / "langchain_rag" / ".env"
+    load_dotenv(dotenv_path=env_path, override=False)
+
+
 def load_config() -> dict[str, Any]:
     p = project_root() / "langchain_rag" / "config.json"
     return json.loads(p.read_text(encoding="utf-8"))
@@ -37,11 +43,13 @@ def normalize(t: str) -> str:
 
 
 def get_embeddings() -> OpenAIEmbeddings:
+    load_env()
     model = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
     return OpenAIEmbeddings(model=model)
 
 
 def get_llm() -> ChatOpenAI:
+    load_env()
     model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     return ChatOpenAI(model=model, temperature=0)
 

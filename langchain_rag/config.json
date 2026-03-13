@@ -1,5 +1,5 @@
 {
-  "pdf_path": "requirements/富邦年報.pdf",
+  "pdf_path": "requirements/富邦金控數據科學組_簡報專題.pdf",
   "qa_xlsx": "requirements/題目一_附件_問答集.xlsx",
   "persist_directory": "langchain_rag/artifacts/chroma_db",
   "chunk_size": 1000,
