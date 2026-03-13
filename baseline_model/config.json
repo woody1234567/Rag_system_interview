@@ -1,0 +1,11 @@
+{
+  "annual_report_pdf": "requirements/富邦金控數據科學組_簡報專題.pdf",
+  "qa_xlsx": "requirements/題目一_附件_問答集.xlsx",
+  "artifacts_dir": "baseline_model/artifacts",
+  "chunk_size": 800,
+  "chunk_overlap": 120,
+  "top_k": 5,
+  "min_retrieval_score": 0.08,
+  "min_answer_evidence_score": 0.12,
+  "refusal_text": "根據目前提供之富邦 113 年報資料，無法找到直接可驗證的答案，因此不進行推論。"
+}
