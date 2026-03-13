@@ -199,22 +199,6 @@
 
 ---
 
-## 5. 交付順序與時程（建議 1~2 天）
-
-## Day 1
-
-- 完成 P0-1 / P0-2（模組化 + normalizer）
-- 完成 P0-4（拒答矩陣）
-
-## Day 2
-
-- 完成 P0-3（多子題覆蓋）
-- 完成 P0-5（輸出擴充）
-- 完成 P0-6（基本單測）
-- 重跑 `rag-eval` 並更新 artifacts
-
----
-
 ## 6. 驗收標準（Definition of Done）
 
 1. 不改 RAG pipeline 前提下，可輸出 strict/relaxed 雙軌結果
@@ -246,3 +230,35 @@
   - P3（Evidence Gate）
 
 > 原則：沒有穩定評測器，就不要進入大規模模型優化。
+
+---
+
+## 9. 實作狀態（2026-03-13）
+
+已在 `langchain_rag` 完成 P0 實作：
+
+- ✅ P0-1：抽離評分器模組
+  - 新增 `src/langchain_rag_app/eval/normalizers.py`
+  - 新增 `src/langchain_rag_app/eval/judge.py`
+  - 新增 `src/langchain_rag_app/eval/metrics.py`
+
+- ✅ P0-2：文字與數值正規化
+  - 中文數字（常見範圍）轉換
+  - 百分比/科學記號/單位（元、千元、萬、億、年）處理
+  - `numeric_equivalent()` 相對誤差容忍
+
+- ✅ P0-3：多子題 coverage
+  - rule-based 子題切分
+  - 每題輸出 `coverage_score`
+
+- ✅ P0-4：拒答指標完整化
+  - 輸出 `refusal_precision / refusal_recall / refusal_f1`
+  - 輸出 `refusal_confusion_matrix`
+
+- ✅ P0-5：評測輸出擴充
+  - 每題：`is_correct_strict`, `is_correct_relaxed`, `coverage_score`, `judge_reason_codes`
+  - 總結：`accuracy_strict`, `accuracy_relaxed`, `avg_coverage_score` 等
+
+- ✅ P0-6：回歸測試
+  - 新增 `tests/test_evaluator.py`
+  - 覆蓋：格式等價、百分比、中文數字、拒答、多子題覆蓋

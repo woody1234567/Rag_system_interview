@@ -2,15 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
-from .core import (
-    answer_question,
-    build_index,
-    is_refusal_gold,
-    judge,
-    load_config,
-    parse_xlsx_questions,
-    project_root,
-)
+from .core import answer_question, build_index, load_config, parse_xlsx_questions, project_root
+from .eval import is_refusal_gold, judge_answer, summarize_results
 
 
 def index_cmd() -> None:
@@ -32,38 +25,32 @@ def eval_cmd() -> None:
     questions = parse_xlsx_questions(qa_path)
 
     results = []
-    correct = 0
-    refusal_total = 0
-    refusal_correct = 0
-    citation_covered = 0
 
     for row in questions:
         pred = answer_question(row["question"])
-        ok = judge(pred["answer"], pred["refusal"], row["gold_answer"])
-        correct += int(ok)
+        gold_is_refusal = is_refusal_gold(row["gold_answer"])
+        jr = judge_answer(
+            pred_answer=pred["answer"],
+            pred_refusal=pred["refusal"],
+            gold_answer=row["gold_answer"],
+            question=row["question"],
+        )
 
-        if is_refusal_gold(row["gold_answer"]):
-            refusal_total += 1
-            refusal_correct += int(pred["refusal"])
+        results.append(
+            {
+                **row,
+                "gold_is_refusal": gold_is_refusal,
+                "pred_answer": pred["answer"],
+                "pred_refusal": pred["refusal"],
+                "pred_sources": pred["sources"],
+                "is_correct_strict": jr.is_correct_strict,
+                "is_correct_relaxed": jr.is_correct_relaxed,
+                "coverage_score": jr.coverage_score,
+                "judge_reason_codes": jr.reason_codes,
+            }
+        )
 
-        citation_covered += int(bool(pred.get("sources")))
-
-        results.append({
-            **row,
-            "pred_answer": pred["answer"],
-            "pred_refusal": pred["refusal"],
-            "pred_sources": pred["sources"],
-            "is_correct": ok,
-        })
-
-    total = max(1, len(results))
-    summary = {
-        "total": len(results),
-        "accuracy": round(correct / total, 4),
-        "refusal_total": refusal_total,
-        "refusal_precision": round(refusal_correct / max(1, refusal_total), 4),
-        "citation_coverage": round(citation_covered / total, 4),
-    }
+    summary = summarize_results(results)
 
     out_dir = project_root() / "langchain_rag" / "artifacts"
     out_dir.mkdir(parents=True, exist_ok=True)

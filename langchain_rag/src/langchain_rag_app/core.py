@@ -36,11 +36,6 @@ def load_config() -> dict[str, Any]:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def normalize(t: str) -> str:
-    t = t.replace("\u3000", " ")
-    t = re.sub(r"\s+", " ", t).strip().lower()
-    return t.replace(",", "")
-
 
 def get_embeddings() -> OpenAIEmbeddings:
     load_env()
@@ -193,14 +188,3 @@ def parse_xlsx_questions(xlsx_path: Path):
                 })
         return out
 
-
-def is_refusal_gold(gold: str) -> bool:
-    return any(k in gold for k in ["拒答", "無法推論", "資料不足"])
-
-
-def judge(pred: str, refused: bool, gold: str) -> bool:
-    if is_refusal_gold(gold):
-        return refused
-    if refused:
-        return False
-    return normalize(gold) in normalize(pred)
