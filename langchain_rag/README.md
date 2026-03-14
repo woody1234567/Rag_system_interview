@@ -5,7 +5,7 @@
 ## 功能
 - `rag-index`: 建立 Chroma 向量索引
 - `rag-query`: 單題查詢（含來源頁碼、拒答）
-- `rag-eval`: 題庫批次評測（P0 評測器）
+- `rag-eval`: 題庫批次評測（含 P1 Hybrid Retrieval）
   - `accuracy_strict`
   - `accuracy_relaxed`
   - `avg_coverage_score`（多子題完整率）
@@ -73,6 +73,13 @@ uv run rag-eval
 - `refusal_f1`
 - `refusal_confusion_matrix`
 - `citation_coverage`
+- `retrieval.retrieval_recall_at_20`
+- `retrieval.final_context_hit_rate`
+- `retrieval.rerank_gain`
+
+另外會輸出：
+- `langchain_rag/artifacts/eval_retrieval_debug.json`
+  - 每題 dense/bm25/fusion/rerank 的候選資訊，方便 debug。
 
 ### 6) 跑 P0 evaluator 測試
 ```bash

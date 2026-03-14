@@ -44,6 +44,10 @@ def summarize_results(results: list[dict]) -> dict:
     sem_rows = [r for r in results if r.get("question_type") == "summary_strategy"]
     sem_pass = _safe_div(sum(1 for r in sem_rows if r.get("final_label") in {"correct_semantic", "partial"}), max(len(sem_rows), 1))
 
+    retrieval_recall_at_20 = _safe_div(sum(1 for r in results if r.get("retrieval_recall_at_20")), max(total, 1))
+    final_context_hit_rate = _safe_div(sum(1 for r in results if r.get("final_context_hit")), max(total, 1))
+    rerank_gain = _safe_div(sum(float(r.get("rerank_gain", 0.0)) for r in results), max(total, 1))
+
     # backward-compatible flat keys + new layered blocks
     summary = {
         "total": total,
@@ -70,6 +74,11 @@ def summarize_results(results: list[dict]) -> dict:
             "avg_ans_gold_sim": round(avg_ag, 4),
             "avg_ans_q_sim": round(avg_aq, 4),
             "avg_ans_evidence_sim": round(avg_ae, 4),
+        },
+        "retrieval": {
+            "retrieval_recall_at_20": round(retrieval_recall_at_20, 4),
+            "final_context_hit_rate": round(final_context_hit_rate, 4),
+            "rerank_gain": round(rerank_gain, 4),
         },
         "final": {
             "final_accuracy": round(_safe_div(final_correct, max(total, 1)), 4),

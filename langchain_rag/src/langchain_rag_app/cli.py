@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from pathlib import Path
 
 from .core import answer_question, build_index, load_config, parse_xlsx_questions, project_root
@@ -27,6 +28,21 @@ def query_cmd() -> None:
     print(json.dumps(ans, ensure_ascii=False, indent=2))
 
 
+def _parse_gold_pages(raw: str) -> set[int]:
+    text = (raw or "").replace("~", "-")
+    nums = re.findall(r"\d+\s*-\s*\d+|\d+", text)
+    pages: set[int] = set()
+    for n in nums:
+        if "-" in n:
+            a, b = [int(x.strip()) for x in n.split("-")]
+            lo, hi = min(a, b), max(a, b)
+            for p in range(lo, hi + 1):
+                pages.add(p)
+        else:
+            pages.add(int(n))
+    return pages
+
+
 def eval_cmd() -> None:
     cfg = load_config()
     qa_path = project_root() / cfg["qa_xlsx"]
@@ -51,7 +67,7 @@ def eval_cmd() -> None:
             question=row["question"],
         )
 
-        evidence = "\n".join([f"p{p}" for p in pred.get("sources", [])])
+        evidence = pred.get("evidence_text", "")
         llm_enabled = (qtype in llm_enable_types) and (llm_sample_rate >= 1.0)
         llm_judge = judge_with_llm(
             question=row["question"],
@@ -76,6 +92,12 @@ def eval_cmd() -> None:
             gold_is_refusal=gold_is_refusal,
             llm_pass=llm_judge.get("pass"),
         )
+
+        gold_pages = _parse_gold_pages(row.get("gold_pages", ""))
+        fusion_pages = {int(x.get("page", -1)) for x in pred.get("retrieval_debug", {}).get("fusion_top", []) if int(x.get("page", -1)) > 0}
+        final_pages = {int(x.get("page", -1)) for x in pred.get("retrieval_debug", {}).get("final_docs", []) if int(x.get("page", -1)) > 0}
+        retrieval_recall_at_20 = bool(gold_pages and (gold_pages & fusion_pages))
+        final_context_hit = bool(gold_pages and (gold_pages & final_pages))
 
         results.append(
             {
@@ -103,6 +125,10 @@ def eval_cmd() -> None:
                 "llm_judge": llm_judge,
                 "embedding_diagnostics": sim,
                 "final_label": final_label,
+                "retrieval_debug": pred.get("retrieval_debug", {}),
+                "retrieval_recall_at_20": retrieval_recall_at_20,
+                "final_context_hit": final_context_hit,
+                "rerank_gain": int(final_context_hit) - int(retrieval_recall_at_20),
             }
         )
 
@@ -112,5 +138,15 @@ def eval_cmd() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "eval_results.json").write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     (out_dir / "eval_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    retrieval_debug = [
+        {
+            "qid": r.get("qid"),
+            "question": r.get("question"),
+            "gold_pages": r.get("gold_pages"),
+            "retrieval_debug": r.get("retrieval_debug", {}),
+        }
+        for r in results
+    ]
+    (out_dir / "eval_retrieval_debug.json").write_text(json.dumps(retrieval_debug, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(json.dumps(summary, ensure_ascii=False))

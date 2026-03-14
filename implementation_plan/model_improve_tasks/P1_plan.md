@@ -263,3 +263,24 @@ A/B 三組即可先看方向：
 - **P4（Chunk 優化）**：若 P1 後仍有召回瓶頸，再優化切塊
 
 > 原則：先把檢索命中率拉上來，再處理生成與拒答策略，迭代效率最高。
+
+---
+
+## 11. 實作狀態（2026-03-14）
+
+已完成並落地於 `langchain_rag`：
+
+- ✅ P1-1：Retrieval 抽象介面化（`retrieval_mode` 可切換）
+- ✅ P1-2：加入 BM25（`BM25Index`）
+- ✅ P1-3：融合策略（RRF）
+- ✅ P1-4：Rerank（heuristic reranker，保留 `rerank_score`）
+- ✅ P1-5：Retrieval debug artifact
+  - 產出 `artifacts/eval_retrieval_debug.json`
+- ✅ P1-6：檢索 KPI
+  - `retrieval_recall_at_20`
+  - `final_context_hit_rate`
+  - `rerank_gain`
+
+### 測試狀態
+- 單元測試通過（共 15 tests）
+- 新增 retrieval 測試：`tests/test_retrieval_pipeline.py`

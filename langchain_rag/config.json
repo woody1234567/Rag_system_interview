@@ -5,6 +5,19 @@
   "chunk_size": 1000,
   "chunk_overlap": 200,
   "k": 5,
+  "retrieval_mode": "hybrid_rerank",
+  "dense_top_n": 20,
+  "bm25_top_n": 20,
+  "fusion": {
+    "method": "rrf",
+    "rrf_k": 60
+  },
+  "rerank": {
+    "enabled": true,
+    "top_k": 5,
+    "candidate_pool": 30,
+    "model": "heuristic-reranker-v1"
+  },
   "refusal_text": "根據目前提供之富邦 113 年報資料，無法找到直接可驗證的答案，因此不進行推論。",
   "eval": {
     "llm_judge_enable_types": ["summary_strategy", "multi_fact"],
