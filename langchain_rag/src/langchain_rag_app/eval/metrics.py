@@ -47,6 +47,7 @@ def summarize_results(results: list[dict]) -> dict:
     retrieval_recall_at_20 = _safe_div(sum(1 for r in results if r.get("retrieval_recall_at_20")), max(total, 1))
     final_context_hit_rate = _safe_div(sum(1 for r in results if r.get("final_context_hit")), max(total, 1))
     rerank_gain = _safe_div(sum(float(r.get("rerank_gain", 0.0)) for r in results), max(total, 1))
+    avg_rerank_latency_ms = _safe_div(sum(float(r.get("avg_rerank_latency_ms", 0.0)) for r in results), max(total, 1))
 
     # backward-compatible flat keys + new layered blocks
     summary = {
@@ -79,6 +80,7 @@ def summarize_results(results: list[dict]) -> dict:
             "retrieval_recall_at_20": round(retrieval_recall_at_20, 4),
             "final_context_hit_rate": round(final_context_hit_rate, 4),
             "rerank_gain": round(rerank_gain, 4),
+            "avg_rerank_latency_ms": round(avg_rerank_latency_ms, 3),
         },
         "final": {
             "final_accuracy": round(_safe_div(final_correct, max(total, 1)), 4),

@@ -81,6 +81,12 @@ uv run rag-eval
 - `langchain_rag/artifacts/eval_retrieval_debug.json`
   - 每題 dense/bm25/fusion/rerank 的候選資訊，方便 debug。
 
+## Reranker 切換
+在 `config.json` 使用 `rerank.type`：
+- `"heuristic"`：規則式重排（預設）
+- `"cross_encoder"`：Cross-Encoder 重排（失敗時自動 fallback heuristic）
+- `"none"`：跳過 rerank，直接使用 fused top-k
+
 ### 6) 跑 P0 evaluator 測試
 ```bash
 uv run python -m unittest discover -s tests -p 'test_*.py'

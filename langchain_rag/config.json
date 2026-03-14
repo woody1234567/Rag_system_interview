@@ -14,9 +14,18 @@
   },
   "rerank": {
     "enabled": true,
-    "top_k": 5,
-    "candidate_pool": 30,
-    "model": "heuristic-reranker-v1"
+    "type": "heuristic",
+    "top_k": 6,
+    "candidate_pool": 12,
+    "heuristic": {
+      "year_bonus": 0.1
+    },
+    "cross_encoder": {
+      "model_name": "BAAI/bge-reranker-v2-m3",
+      "batch_size": 16,
+      "max_length": 512,
+      "device": "cpu"
+    }
   },
   "refusal_text": "根據目前提供之富邦 113 年報資料，無法找到直接可驗證的答案，因此不進行推論。",
   "eval": {

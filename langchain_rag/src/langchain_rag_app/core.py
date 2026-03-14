@@ -12,7 +12,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .retrieval import BM25Index, RetrievalCandidate, heuristic_rerank, rrf_fusion
+from .retrieval import BM25Index, RetrievalCandidate, rerank_candidates, rrf_fusion
 
 
 SYSTEM_PROMPT = """你是富邦年報問答助理。必須遵守：
@@ -132,6 +132,10 @@ def retrieve_with_pipeline(query: str, cfg: dict[str, Any]) -> tuple[list[Retrie
         "fusion_top": [],
         "rerank_top": [],
         "final_docs": [],
+        "reranker_type": "none",
+        "candidate_pool_size": 0,
+        "fallback_used": False,
+        "rerank_latency_ms": 0.0,
     }
 
     if mode == "dense_only":
@@ -153,12 +157,21 @@ def retrieve_with_pipeline(query: str, cfg: dict[str, Any]) -> tuple[list[Retrie
         debug["fusion_top"] = [{"doc_id": c.doc_id, "page": c.page, "score": round(float(c.fusion_score or 0.0), 6)} for c in fused]
 
         if rerank_enabled:
-            final_docs = heuristic_rerank(query, fused, top_k=rerank_top_k, candidate_pool=candidate_pool)
+            rr = rerank_candidates(query, fused, cfg)
+            final_docs = rr.candidates[:rerank_top_k]
+            debug["reranker_type"] = rr.reranker_type
+            debug["candidate_pool_size"] = min(candidate_pool, len(fused))
+            debug["fallback_used"] = rr.fallback_used
+            debug["rerank_latency_ms"] = round(rr.latency_ms, 3)
             debug["rerank_top"] = [
                 {"doc_id": c.doc_id, "page": c.page, "score": round(float(c.rerank_score or 0.0), 6)} for c in final_docs
             ]
         else:
             final_docs = fused[: int(cfg.get("k", 5))]
+            debug["reranker_type"] = "disabled"
+            debug["candidate_pool_size"] = 0
+            debug["fallback_used"] = False
+            debug["rerank_latency_ms"] = 0.0
 
     debug["final_docs"] = [{"doc_id": c.doc_id, "page": c.page} for c in final_docs]
     return final_docs, debug

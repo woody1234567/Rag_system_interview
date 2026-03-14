@@ -265,3 +265,33 @@
 - reranker 從「可能拖累」變成「可量化優化元件」
 - 可透過 config 低成本切換策略
 - 為後續 P2（query planning）與 P3（拒答 gate）提供更高品質 context
+
+---
+
+## 12) 實作狀態（2026-03-14）
+
+已完成並落地於 `langchain_rag`：
+
+- ✅ R1：Reranker router
+  - 新增 `rerank_candidates(query, candidates, cfg)`
+  - 支援 `heuristic` / `cross_encoder` / `none`
+
+- ✅ R2：Cross-Encoder reranker
+  - 新增 `cross_encoder_rerank(...)`
+  - lazy import `sentence_transformers.CrossEncoder`
+  - `cross_encoder` 不可用時自動 fallback 到 heuristic
+
+- ✅ R3：效能控制
+  - candidate pool 上限保護
+  - rerank latency 量測（ms）
+
+- ✅ R5：觀測欄位
+  - 每題：`reranker_type`, `candidate_pool_size`, `avg_rerank_latency_ms`
+  - summary：`retrieval.avg_rerank_latency_ms`
+
+- ✅ R6：回退機制
+  - `rerank top (k-2) + fusion top 2` 去重保底策略
+
+- ✅ 測試
+  - 新增 `tests/test_reranker_router.py`
+  - 全部單元測試通過（18 tests）

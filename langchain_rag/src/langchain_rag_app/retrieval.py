@@ -1,6 +1,8 @@
 import math
 import re
+import time
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 
@@ -16,6 +18,14 @@ class RetrievalCandidate:
     bm25_score: float | None = None
     fusion_score: float | None = None
     rerank_score: float | None = None
+
+
+@dataclass
+class RerankResult:
+    candidates: list[RetrievalCandidate]
+    reranker_type: str
+    latency_ms: float
+    fallback_used: bool
 
 
 def tokenize(text: str) -> list[str]:
@@ -98,7 +108,13 @@ def _extract_years(text: str) -> set[str]:
     return set(re.findall(r"\b(19\d{2}|20\d{2}|11[0-9])\b", text or ""))
 
 
-def heuristic_rerank(query: str, candidates: list[RetrievalCandidate], top_k: int, candidate_pool: int) -> list[RetrievalCandidate]:
+def heuristic_rerank(
+    query: str,
+    candidates: list[RetrievalCandidate],
+    top_k: int,
+    candidate_pool: int,
+    year_bonus: float = 0.1,
+) -> list[RetrievalCandidate]:
     q_toks = set(tokenize(query))
     q_years = _extract_years(query)
     pool = candidates[:candidate_pool]
@@ -107,10 +123,101 @@ def heuristic_rerank(query: str, candidates: list[RetrievalCandidate], top_k: in
     for c in pool:
         d_toks = set(tokenize(c.content))
         overlap = len(q_toks & d_toks) / max(len(q_toks), 1)
-        year_bonus = 0.1 if (q_years and q_years & _extract_years(c.content)) else 0.0
+        y_bonus = year_bonus if (q_years and q_years & _extract_years(c.content)) else 0.0
         base = c.fusion_score or 0.0
-        c.rerank_score = base + overlap + year_bonus
+        c.rerank_score = base + overlap + y_bonus
         rescored.append(c)
 
     rescored.sort(key=lambda x: x.rerank_score or 0.0, reverse=True)
     return rescored[:top_k]
+
+
+@lru_cache(maxsize=2)
+def _load_cross_encoder(model_name: str, device: str):
+    from sentence_transformers import CrossEncoder  # lazy import
+
+    return CrossEncoder(model_name, device=device)
+
+
+def cross_encoder_rerank(
+    query: str,
+    candidates: list[RetrievalCandidate],
+    top_k: int,
+    candidate_pool: int,
+    model_name: str,
+    batch_size: int,
+    max_length: int,
+    device: str,
+) -> list[RetrievalCandidate]:
+    pool = candidates[: min(candidate_pool, 100)]
+    model = _load_cross_encoder(model_name, device)
+    pairs = [(query, c.content[: max_length * 4]) for c in pool]
+    scores = model.predict(pairs, batch_size=batch_size, show_progress_bar=False)
+
+    rescored = []
+    for c, s in zip(pool, scores):
+        c.rerank_score = float(s)
+        rescored.append(c)
+
+    rescored.sort(key=lambda x: x.rerank_score or 0.0, reverse=True)
+    return rescored[:top_k]
+
+
+def rerank_candidates(query: str, candidates: list[RetrievalCandidate], cfg: dict[str, Any]) -> RerankResult:
+    rerank_cfg = cfg.get("rerank", {})
+    r_type = (rerank_cfg.get("type") or "heuristic").lower()
+    top_k = int(rerank_cfg.get("top_k", cfg.get("k", 5)))
+    candidate_pool = int(rerank_cfg.get("candidate_pool", 30))
+
+    start = time.perf_counter()
+    fallback_used = False
+
+    if r_type == "none":
+        out = candidates[:top_k]
+        return RerankResult(out, "none", (time.perf_counter() - start) * 1000.0, False)
+
+    if r_type == "cross_encoder":
+        ce = rerank_cfg.get("cross_encoder", {})
+        try:
+            ranked = cross_encoder_rerank(
+                query=query,
+                candidates=candidates,
+                top_k=top_k,
+                candidate_pool=candidate_pool,
+                model_name=ce.get("model_name", "BAAI/bge-reranker-v2-m3"),
+                batch_size=int(ce.get("batch_size", 16)),
+                max_length=int(ce.get("max_length", 512)),
+                device=ce.get("device", "cpu"),
+            )
+        except Exception:
+            fallback_used = True
+            h = rerank_cfg.get("heuristic", {})
+            ranked = heuristic_rerank(
+                query, candidates, top_k=top_k, candidate_pool=candidate_pool, year_bonus=float(h.get("year_bonus", 0.1))
+            )
+            r_type = "cross_encoder_fallback_heuristic"
+    else:
+        h = rerank_cfg.get("heuristic", {})
+        ranked = heuristic_rerank(
+            query,
+            candidates,
+            top_k=top_k,
+            candidate_pool=candidate_pool,
+            year_bonus=float(h.get("year_bonus", 0.1)),
+        )
+
+    # 保底：rerank top (k-2) + fusion top 2
+    if top_k >= 3:
+        primary = ranked[: max(top_k - 2, 1)]
+        backup = candidates[:2]
+        seen = set()
+        merged: list[RetrievalCandidate] = []
+        for c in primary + backup:
+            if c.doc_id in seen:
+                continue
+            seen.add(c.doc_id)
+            merged.append(c)
+        ranked = merged[:top_k]
+
+    latency_ms = (time.perf_counter() - start) * 1000.0
+    return RerankResult(ranked, r_type, latency_ms, fallback_used)
