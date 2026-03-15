@@ -45,7 +45,12 @@ def summarize_results(results: list[dict]) -> dict:
     sem_pass = _safe_div(sum(1 for r in sem_rows if r.get("final_label") in {"correct_semantic", "partial"}), max(len(sem_rows), 1))
 
     retrieval_recall_at_20 = _safe_div(sum(1 for r in results if r.get("retrieval_recall_at_20")), max(total, 1))
+    fusion_k_hit_rate = _safe_div(sum(1 for r in results if r.get("fusion_k_hit")), max(total, 1))
+    final_k_hit_rate = _safe_div(sum(1 for r in results if r.get("final_k_hit")), max(total, 1))
     final_context_hit_rate = _safe_div(sum(1 for r in results if r.get("final_context_hit")), max(total, 1))
+    avg_rerank_gain_k = _safe_div(sum(float(r.get("rerank_gain_k", 0.0)) for r in results), max(total, 1))
+    pipeline_drop_from_20_to_k = _safe_div(sum(float(r.get("pipeline_drop_from_20_to_k", 0.0)) for r in results), max(total, 1))
+    # backward-compat (deprecated)
     rerank_gain = _safe_div(sum(float(r.get("rerank_gain", 0.0)) for r in results), max(total, 1))
     avg_rerank_latency_ms = _safe_div(sum(float(r.get("avg_rerank_latency_ms", 0.0)) for r in results), max(total, 1))
 
@@ -78,7 +83,11 @@ def summarize_results(results: list[dict]) -> dict:
         },
         "retrieval": {
             "retrieval_recall_at_20": round(retrieval_recall_at_20, 4),
+            "fusion_k_hit_rate": round(fusion_k_hit_rate, 4),
+            "final_k_hit_rate": round(final_k_hit_rate, 4),
             "final_context_hit_rate": round(final_context_hit_rate, 4),
+            "avg_rerank_gain_k": round(avg_rerank_gain_k, 4),
+            "pipeline_drop_from_20_to_k": round(pipeline_drop_from_20_to_k, 4),
             "rerank_gain": round(rerank_gain, 4),
             "avg_rerank_latency_ms": round(avg_rerank_latency_ms, 3),
         },

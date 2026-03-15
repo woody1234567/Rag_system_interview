@@ -94,10 +94,21 @@ def eval_cmd() -> None:
         )
 
         gold_pages = _parse_gold_pages(row.get("gold_pages", ""))
-        fusion_pages = {int(x.get("page", -1)) for x in pred.get("retrieval_debug", {}).get("fusion_top", []) if int(x.get("page", -1)) > 0}
-        final_pages = {int(x.get("page", -1)) for x in pred.get("retrieval_debug", {}).get("final_docs", []) if int(x.get("page", -1)) > 0}
-        retrieval_recall_at_20 = bool(gold_pages and (gold_pages & fusion_pages))
-        final_context_hit = bool(gold_pages and (gold_pages & final_pages))
+        retrieval_debug = pred.get("retrieval_debug", {})
+        fusion_top = retrieval_debug.get("fusion_top", [])
+        final_docs = retrieval_debug.get("final_docs", [])
+
+        k_for_hit = int(cfg.get("rerank", {}).get("top_k", cfg.get("k", 5)))
+        fusion_top_k = fusion_top[:k_for_hit]
+
+        fusion_pages_all = {int(x.get("page", -1)) for x in fusion_top if int(x.get("page", -1)) > 0}
+        fusion_pages_k = {int(x.get("page", -1)) for x in fusion_top_k if int(x.get("page", -1)) > 0}
+        final_pages = {int(x.get("page", -1)) for x in final_docs if int(x.get("page", -1)) > 0}
+
+        retrieval_recall_at_20 = bool(gold_pages and (gold_pages & fusion_pages_all))
+        fusion_k_hit = bool(gold_pages and (gold_pages & fusion_pages_k))
+        final_k_hit = bool(gold_pages and (gold_pages & final_pages))
+        final_context_hit = final_k_hit
 
         results.append(
             {
@@ -125,13 +136,17 @@ def eval_cmd() -> None:
                 "llm_judge": llm_judge,
                 "embedding_diagnostics": sim,
                 "final_label": final_label,
-                "retrieval_debug": pred.get("retrieval_debug", {}),
-                "reranker_type": pred.get("retrieval_debug", {}).get("reranker_type", "none"),
-                "candidate_pool_size": pred.get("retrieval_debug", {}).get("candidate_pool_size", 0),
-                "avg_rerank_latency_ms": pred.get("retrieval_debug", {}).get("rerank_latency_ms", 0.0),
+                "retrieval_debug": retrieval_debug,
+                "reranker_type": retrieval_debug.get("reranker_type", "none"),
+                "candidate_pool_size": retrieval_debug.get("candidate_pool_size", 0),
+                "avg_rerank_latency_ms": retrieval_debug.get("rerank_latency_ms", 0.0),
                 "retrieval_recall_at_20": retrieval_recall_at_20,
+                "fusion_k_hit": fusion_k_hit,
+                "final_k_hit": final_k_hit,
                 "final_context_hit": final_context_hit,
-                "rerank_gain": int(final_context_hit) - int(retrieval_recall_at_20),
+                "rerank_gain_k": int(final_k_hit) - int(fusion_k_hit),
+                "pipeline_drop_from_20_to_k": int(final_k_hit) - int(retrieval_recall_at_20),
+                "rerank_gain": int(final_k_hit) - int(retrieval_recall_at_20),
             }
         )
 

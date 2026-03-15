@@ -29,12 +29,12 @@ def write_json(path: Path, obj: dict | list) -> None:
 
 
 def rank_key(row: dict) -> tuple:
-    # 必要條件優先：rerank_gain >= 0
-    gain_ok = 1 if float(row.get("retrieval.rerank_gain", -999)) >= 0 else 0
+    # 必要條件優先：avg_rerank_gain_k >= 0
+    gain_ok = 1 if float(row.get("retrieval.avg_rerank_gain_k", -999)) >= 0 else 0
     return (
         gain_ok,
         float(row.get("accuracy_relaxed", 0.0)),
-        float(row.get("retrieval.final_context_hit_rate", 0.0)),
+        float(row.get("retrieval.final_k_hit_rate", 0.0)),
         float(row.get("refusal_f1", 0.0)),
         -float(row.get("retrieval.avg_rerank_latency_ms", 1e9)),
     )
@@ -47,7 +47,11 @@ def flatten_summary(summary: dict) -> dict:
         "accuracy_relaxed": summary.get("accuracy_relaxed"),
         "avg_coverage_score": summary.get("avg_coverage_score"),
         "refusal_f1": summary.get("refusal_f1"),
+        "retrieval.fusion_k_hit_rate": summary.get("retrieval", {}).get("fusion_k_hit_rate"),
+        "retrieval.final_k_hit_rate": summary.get("retrieval", {}).get("final_k_hit_rate"),
         "retrieval.final_context_hit_rate": summary.get("retrieval", {}).get("final_context_hit_rate"),
+        "retrieval.avg_rerank_gain_k": summary.get("retrieval", {}).get("avg_rerank_gain_k"),
+        "retrieval.pipeline_drop_from_20_to_k": summary.get("retrieval", {}).get("pipeline_drop_from_20_to_k"),
         "retrieval.rerank_gain": summary.get("retrieval", {}).get("rerank_gain"),
         "retrieval.avg_rerank_latency_ms": summary.get("retrieval", {}).get("avg_rerank_latency_ms"),
     }
@@ -161,7 +165,11 @@ def main() -> int:
             "accuracy_relaxed",
             "avg_coverage_score",
             "refusal_f1",
+            "retrieval.fusion_k_hit_rate",
+            "retrieval.final_k_hit_rate",
             "retrieval.final_context_hit_rate",
+            "retrieval.avg_rerank_gain_k",
+            "retrieval.pipeline_drop_from_20_to_k",
             "retrieval.rerank_gain",
             "retrieval.avg_rerank_latency_ms",
         ]
