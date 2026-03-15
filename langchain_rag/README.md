@@ -87,6 +87,20 @@ uv run rag-eval
 - `"cross_encoder"`：Cross-Encoder 重排（失敗時自動 fallback heuristic）
 - `"none"`：跳過 rerank，直接使用 fused top-k
 
+## 自動化參數實驗（experiments_plan）
+- Grid 檔：`experiments/rerank_grid.json`
+- Runner：`scripts/run_rerank_experiments.py`
+
+執行：
+```bash
+uv run python scripts/run_rerank_experiments.py --project-dir . --top-n 3
+```
+
+輸出：
+- `artifacts/experiments/<run_id>/leaderboard.csv`
+- `artifacts/experiments/<run_id>/results.json`
+- `artifacts/experiments/latest_summary.csv`
+
 ### 6) 跑 P0 evaluator 測試
 ```bash
 uv run python -m unittest discover -s tests -p 'test_*.py'
