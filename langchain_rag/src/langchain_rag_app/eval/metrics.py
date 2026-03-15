@@ -29,7 +29,7 @@ def summarize_results(results: list[dict]) -> dict:
     f1 = _safe_div(2 * precision * recall, precision + recall)
 
     llm_rows = [r for r in results if isinstance(r.get("llm_judge"), dict) and r["llm_judge"].get("enabled")]
-    semantic_pass = sum(1 for r in llm_rows if r["llm_judge"].get("pass") is True)
+    semantic_pass = sum(1 for r in llm_rows if r["llm_judge"].get("pass_calibrated") is True)
     avg_sem = _safe_div(sum(float(r["llm_judge"].get("semantic_score") or 0.0) for r in llm_rows), max(len(llm_rows), 1))
     avg_comp = _safe_div(sum(float(r["llm_judge"].get("completeness_score") or 0.0) for r in llm_rows), max(len(llm_rows), 1))
     avg_faith = _safe_div(sum(float(r["llm_judge"].get("faithfulness_score") or 0.0) for r in llm_rows), max(len(llm_rows), 1))
@@ -39,10 +39,30 @@ def summarize_results(results: list[dict]) -> dict:
     avg_aq = _safe_div(sum(float(r["embedding_diagnostics"].get("ans_q_sim") or 0.0) for r in sim_rows), max(len(sim_rows), 1))
     avg_ae = _safe_div(sum(float(r["embedding_diagnostics"].get("ans_evidence_sim") or 0.0) for r in sim_rows), max(len(sim_rows), 1))
 
-    hard_rows = [r for r in results if r.get("question_type") in {"hard_fact_numeric", "hard_fact_entity", "multi_fact", "refusal_expected"}]
+    hard_rows = [r for r in results if r.get("question_type") in {"hard_fact_numeric", "hard_fact_entity", "refusal_expected"}]
     hard_acc = _safe_div(sum(1 for r in hard_rows if r.get("final_label") in {"correct_hard", "refusal_correct"}), max(len(hard_rows), 1))
-    sem_rows = [r for r in results if r.get("question_type") == "summary_strategy"]
+    sem_summary_rows = [r for r in results if r.get("question_type") == "summary_strategy"]
+    sem_multi_rows = [r for r in results if r.get("question_type") == "multi_fact"]
+    sem_rows = sem_summary_rows + sem_multi_rows
     sem_pass = _safe_div(sum(1 for r in sem_rows if r.get("final_label") in {"correct_semantic", "partial"}), max(len(sem_rows), 1))
+    sem_pass_summary = _safe_div(
+        sum(1 for r in sem_summary_rows if r.get("final_label") in {"correct_semantic", "partial"}),
+        max(len(sem_summary_rows), 1),
+    )
+    sem_pass_multifact = _safe_div(
+        sum(1 for r in sem_multi_rows if r.get("final_label") in {"correct_semantic", "partial"}),
+        max(len(sem_multi_rows), 1),
+    )
+    semantic_rule_conflict_rate = _safe_div(
+        sum(
+            1
+            for r in sem_rows
+            if isinstance(r.get("llm_judge"), dict)
+            and r["llm_judge"].get("pass_calibrated") is True
+            and r.get("final_label") == "incorrect"
+        ),
+        max(len(sem_rows), 1),
+    )
 
     retrieval_recall_at_20 = _safe_div(sum(1 for r in results if r.get("retrieval_recall_at_20")), max(total, 1))
     fusion_k_hit_rate = _safe_div(sum(1 for r in results if r.get("fusion_k_hit")), max(total, 1))
@@ -110,6 +130,9 @@ def summarize_results(results: list[dict]) -> dict:
             "final_accuracy": round(_safe_div(final_correct, max(total, 1)), 4),
             "hard_fact_accuracy": round(hard_acc, 4),
             "semantic_task_pass": round(sem_pass, 4),
+            "semantic_task_pass_summary": round(sem_pass_summary, 4),
+            "semantic_task_pass_multifact": round(sem_pass_multifact, 4),
+            "semantic_rule_conflict_rate": round(semantic_rule_conflict_rate, 4),
         },
     }
     return summary

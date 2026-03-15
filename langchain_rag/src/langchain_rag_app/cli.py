@@ -75,6 +75,7 @@ def eval_cmd() -> None:
             pred=pred["answer"],
             evidence=evidence,
             enabled=llm_enabled,
+            question_type=qtype,
         )
 
         sim = compute_similarity_diagnostics(
@@ -90,7 +91,9 @@ def eval_cmd() -> None:
             rule_relaxed=jr.is_correct_relaxed,
             pred_refusal=pred["refusal"],
             gold_is_refusal=gold_is_refusal,
-            llm_pass=llm_judge.get("pass"),
+            llm_pass_calibrated=llm_judge.get("pass_calibrated"),
+            llm_faithfulness_score=llm_judge.get("faithfulness_score"),
+            judge_reason_codes=jr.reason_codes,
         )
 
         gold_pages = _parse_gold_pages(row.get("gold_pages", ""))
