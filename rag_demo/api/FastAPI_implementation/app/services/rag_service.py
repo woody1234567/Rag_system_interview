@@ -13,6 +13,12 @@ class RagService:
     _index_lock = Lock()
 
     @staticmethod
+    def requirements_dir() -> Path:
+        here = Path(__file__).resolve()
+        api_root = here.parents[2]  # .../FastAPI_implementation
+        return api_root / "requirements"
+
+    @staticmethod
     def _import_core():
         import sys
 

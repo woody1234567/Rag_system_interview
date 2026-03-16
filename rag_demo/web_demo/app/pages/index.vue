@@ -5,12 +5,16 @@ const question = ref('')
 const includeDebug = ref(false)
 const loading = ref(false)
 const indexing = ref(false)
+const uploading = ref(false)
 const health = ref<'checking' | 'ok' | 'down'>('checking')
 const errorMsg = ref('')
 const indexMsg = ref('')
+const uploadMsg = ref('')
 const result = ref<RagQueryResponse | null>(null)
+const selectedFile = ref<File | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 
-const { queryRag, buildIndex, checkHealth } = useRagApi()
+const { queryRag, buildIndex, checkHealth, uploadFile } = useRagApi()
 
 onMounted(async () => {
   try {
@@ -51,6 +55,33 @@ const runIndex = async () => {
   }
 }
 
+const runUpload = async () => {
+  if (!selectedFile.value) return
+  uploadMsg.value = ''
+  uploading.value = true
+  try {
+    const res = await uploadFile(selectedFile.value)
+    uploadMsg.value = `上傳成功: ${res.filename}`
+    selectedFile.value = null
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  } catch (error: any) {
+    uploadMsg.value = error?.data?.message || error?.message || '上傳失敗'
+  } finally {
+    uploading.value = false
+  }
+}
+
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    selectedFile.value = target.files[0] || null
+  } else {
+    selectedFile.value = null
+  }
+}
+
 const healthColor = computed(() => {
   if (health.value === 'ok') return 'success'
   if (health.value === 'down') return 'error'
@@ -84,31 +115,75 @@ const healthColor = computed(() => {
           <template #header>
             <div class="flex items-center gap-2">
               <UIcon name="i-lucide-database" class="w-5 h-5 text-(--ui-primary)" />
-              <h2 class="font-semibold">系統設定</h2>
+              <h2 class="font-semibold">系統設定 (文件管理與索引)</h2>
             </div>
           </template>
 
-          <div class="space-y-4">
-            <p class="text-sm text-(--ui-text-muted)">
-              如果您更新了文件，請重新建立索引以確保搜尋結果是最新的。
-            </p>
-            <UButton
-              block
-              :loading="indexing"
-              icon="i-lucide-refresh-cw"
-              color="neutral"
-              variant="outline"
-              @click="runIndex"
-            >
-              {{ indexing ? '建索引中...' : '重新建立索引' }}
-            </UButton>
-            
-            <UAlert
-              v-if="indexMsg"
-              :color="indexMsg.includes('失敗') ? 'error' : 'success'"
-              variant="subtle"
-              :title="indexMsg"
-            />
+          <div class="space-y-6">
+            <!-- Upload Section -->
+            <div class="space-y-3">
+              <h3 class="text-sm font-medium">1. 上傳新文件 (PDF)</h3>
+              <p class="text-xs text-(--ui-text-muted)">
+                上傳新的年報或說明書至伺服器作為知識庫擴充來源。
+              </p>
+              <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept=".pdf"
+                  class="block w-full text-sm text-(--ui-text-muted)
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-(--ui-primary)/10 file:text-(--ui-primary)
+                    hover:file:bg-(--ui-primary)/20"
+                  @change="handleFileSelect"
+                />
+                <UButton
+                  :loading="uploading"
+                  :disabled="!selectedFile"
+                  icon="i-lucide-upload"
+                  color="primary"
+                  class="shrink-0"
+                  @click="runUpload"
+                >
+                  上傳檔案
+                </UButton>
+              </div>
+              <UAlert
+                v-if="uploadMsg"
+                :color="uploadMsg.includes('失敗') ? 'error' : 'success'"
+                variant="subtle"
+                :title="uploadMsg"
+              />
+            </div>
+
+            <UDivider />
+
+            <!-- Index Section -->
+            <div class="space-y-3">
+              <h3 class="text-sm font-medium">2. 建立/更新索引</h3>
+              <p class="text-xs text-(--ui-text-muted)">
+                如果您已經上傳了新文件，請重新建立索引以確保 AI 能讀取到最新內容。
+              </p>
+              <UButton
+                block
+                :loading="indexing"
+                icon="i-lucide-refresh-cw"
+                color="neutral"
+                variant="outline"
+                @click="runIndex"
+              >
+                {{ indexing ? '建索引中...' : '重新建立索引' }}
+              </UButton>
+              
+              <UAlert
+                v-if="indexMsg"
+                :color="indexMsg.includes('失敗') ? 'error' : 'success'"
+                variant="subtle"
+                :title="indexMsg"
+              />
+            </div>
           </div>
         </UCard>
 

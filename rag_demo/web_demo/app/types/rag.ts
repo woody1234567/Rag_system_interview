@@ -21,3 +21,8 @@ export interface RagIndexResponse {
 export interface RagHealthResponse {
   status: string
 }
+
+export interface RagUploadResponse {
+  filename: string
+  status: string
+}

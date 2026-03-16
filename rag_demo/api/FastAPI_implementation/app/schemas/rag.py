@@ -21,3 +21,8 @@ class QueryResponse(BaseModel):
 class IndexResponse(BaseModel):
     chunks: int
     status: str = "completed"
+
+
+class UploadResponse(BaseModel):
+    filename: str
+    status: str = "uploaded"

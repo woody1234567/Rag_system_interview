@@ -3,7 +3,8 @@ import type {
   RagIndexResponse,
   RagQueryRequest,
   RagQueryResponse,
-} from '../../types/rag'
+  RagUploadResponse,
+} from '../../../app/types/rag'
 
 interface CreateFastApiClientOptions {
   baseUrl: string
@@ -31,5 +32,15 @@ export function createFastApiClient(options: CreateFastApiClientOptions) {
         method: 'GET',
         timeout: 10000,
       }),
+    upload: (fileData: Uint8Array | Buffer, filename: string, contentType: string) => {
+      const formData = new FormData()
+      formData.append('file', new Blob([fileData], { type: contentType }), filename)
+      return fetcher<RagUploadResponse>(`${base}/v1/rag/upload`, {
+        method: 'POST',
+        body: formData,
+        timeout: 120000,
+      })
+    },
   }
 }
+
