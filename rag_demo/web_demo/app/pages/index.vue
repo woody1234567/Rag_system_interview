@@ -79,6 +79,48 @@ const healthColor = computed(() => {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <!-- Left Column: Query and Management -->
       <div class="lg:col-span-2 space-y-8">
+        <!-- Index Management (Moved here) -->
+        <UCard>
+          <template #header>
+            <div class="flex items-center gap-2">
+              <UIcon name="i-lucide-database" class="w-5 h-5 text-(--ui-primary)" />
+              <h2 class="font-semibold">系統設定</h2>
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <p class="text-sm text-(--ui-text-muted)">
+              如果您更新了文件，請重新建立索引以確保搜尋結果是最新的。
+            </p>
+            <UButton
+              block
+              :loading="indexing"
+              icon="i-lucide-refresh-cw"
+              color="neutral"
+              variant="outline"
+              @click="runIndex"
+            >
+              {{ indexing ? '建索引中...' : '重新建立索引' }}
+            </UButton>
+            
+            <UAlert
+              v-if="indexMsg"
+              :color="indexMsg.includes('失敗') ? 'error' : 'success'"
+              variant="subtle"
+              :title="indexMsg"
+            />
+          </div>
+        </UCard>
+
+        <!-- Index Creation Reminder -->
+        <UAlert
+          icon="i-lucide-info"
+          color="primary"
+          variant="subtle"
+          title="使用提示"
+          description="在開始提問之前，請確保您已建立索引。如果您的文件有變動，請點擊上方的「重新建立索引」按鈕。"
+        />
+
         <!-- Query Section -->
         <UCard>
           <template #header>
@@ -165,41 +207,8 @@ const healthColor = computed(() => {
         </UCard>
       </div>
 
-      <!-- Right Column: Sidebar / System Management -->
+      <!-- Right Column: Sidebar -->
       <div class="space-y-8">
-        <!-- Index Management -->
-        <UCard>
-          <template #header>
-            <div class="flex items-center gap-2">
-              <UIcon name="i-lucide-database" class="w-5 h-5 text-(--ui-primary)" />
-              <h2 class="font-semibold">系統設定</h2>
-            </div>
-          </template>
-
-          <div class="space-y-4">
-            <p class="text-sm text-(--ui-text-muted)">
-              如果您更新了文件資料夾，請重新建立索引以確保搜尋結果是最新的。
-            </p>
-            <UButton
-              block
-              :loading="indexing"
-              icon="i-lucide-refresh-cw"
-              color="neutral"
-              variant="outline"
-              @click="runIndex"
-            >
-              {{ indexing ? '建索引中...' : '重新建立索引' }}
-            </UButton>
-            
-            <UAlert
-              v-if="indexMsg"
-              :color="indexMsg.includes('失敗') ? 'error' : 'success'"
-              variant="subtle"
-              :title="indexMsg"
-            />
-          </div>
-        </UCard>
-
         <!-- Quick Tips -->
         <UCard variant="subtle">
           <h3 class="font-medium text-sm mb-2">使用小撇步</h3>
