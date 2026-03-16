@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-langchain-rag-app = { path = "../langchain_rag", editable = true }
+langchain-rag-app = { path = "langchain_rag", editable = true }
 
 [dependency-groups]
 dev = [

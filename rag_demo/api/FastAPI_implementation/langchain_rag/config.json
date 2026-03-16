@@ -1,0 +1,46 @@
+{
+  "pdf_path": "requirements/富邦年報.pdf",
+  "qa_xlsx": "requirements/題目一_附件_問答集.xlsx",
+  "persist_directory": "langchain_rag/artifacts/chroma_db",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "k": 5,
+  "retrieval_mode": "hybrid_rerank",
+  "dense_top_n": 20,
+  "bm25_top_n": 20,
+  "fusion": {
+    "method": "rrf",
+    "rrf_k": 60
+  },
+  "rerank": {
+    "enabled": true,
+    "type": "cross_encoder",
+    "top_k": 8,
+    "candidate_pool": 12,
+    "heuristic": {
+      "year_bonus": 0.1
+    },
+    "cross_encoder": {
+      "model_name": "BAAI/bge-reranker-v2-m3",
+      "batch_size": 16,
+      "max_length": 512,
+      "device": "cpu"
+    }
+  },
+  "refusal_text": "根據目前提供之富邦 113 年報資料，無法找到直接可驗證的答案，因此不進行推論。",
+  "eval": {
+    "llm_judge_enable_types": ["summary_strategy", "multi_fact"],
+    "llm_judge_sample_rate": 1.0,
+    "similarity_enabled": true
+  },
+  "gate": {
+    "enabled": true,
+    "min_subquestion_coverage": 0.8,
+    "min_evidence_confidence": 0.6,
+    "hard_rules": {
+      "require_entity_match": true,
+      "require_numeric_evidence_for_hard_fact": true,
+      "block_out_of_scope": true
+    }
+  }
+}

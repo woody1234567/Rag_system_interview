@@ -1040,7 +1040,7 @@ wheels = [
 [[package]]
 name = "langchain-rag-app"
 version = "0.1.0"
-source = { editable = "../langchain_rag" }
+source = { editable = "langchain_rag" }
 dependencies = [
     { name = "langchain" },
     { name = "langchain-chroma" },
@@ -2160,7 +2160,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
-    { name = "langchain-rag-app", editable = "../langchain_rag" },
+    { name = "langchain-rag-app", editable = "langchain_rag" },
     { name = "uvicorn", specifier = ">=0.30.0" },
 ]
 
