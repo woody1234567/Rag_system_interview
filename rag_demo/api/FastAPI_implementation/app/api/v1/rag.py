@@ -2,12 +2,22 @@ import shutil
 
 from fastapi import APIRouter, HTTPException, UploadFile
 
-from ...schemas.rag import IndexResponse, QueryRequest, QueryResponse, UploadResponse
+from ...schemas.rag import ClearResponse, IndexResponse, PingResponse, QueryRequest, QueryResponse, UploadResponse
 from ...services.rag_service import RagService, RagServiceError
 
 router = APIRouter(prefix="/v1/rag", tags=["rag"])
 
 ALLOWED_EXTENSIONS = {".pdf"}
+
+@router.post("/ping", response_model=PingResponse)
+def ping() -> PingResponse:
+    RagService.ping()
+    return PingResponse(status="ok")
+
+@router.post("/clear", response_model=ClearResponse)
+def clear() -> ClearResponse:
+    RagService.clear_requirements()
+    return ClearResponse(status="ok")
 
 
 @router.post("/query", response_model=QueryResponse)

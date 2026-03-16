@@ -14,7 +14,15 @@ const result = ref<RagQueryResponse | null>(null)
 const selectedFile = ref<File | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
-const { queryRag, buildIndex, checkHealth, uploadFile } = useRagApi()
+const { queryRag, buildIndex, checkHealth, uploadFile, ping, clearFiles } = useRagApi()
+
+let pingInterval: ReturnType<typeof setInterval> | null = null
+
+const handleBeforeUnload = () => {
+  // Use sendBeacon for more reliable delivery during unload if necessary
+  // Or simply fire the standard fetch.
+  clearFiles()
+}
 
 onMounted(async () => {
   try {
@@ -23,6 +31,22 @@ onMounted(async () => {
   } catch {
     health.value = 'down'
   }
+
+  // Set up 1-minute heartbeat
+  pingInterval = setInterval(() => {
+    ping().catch(() => {})
+  }, 60000)
+
+  // Set up cleanup on window close or reload
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onUnmounted(() => {
+  if (pingInterval) {
+    clearInterval(pingInterval)
+  }
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  clearFiles().catch(() => {})
 })
 
 const submitQuery = async () => {
@@ -162,7 +186,7 @@ const healthColor = computed(() => {
               />
             </div>
 
-            <UDivider />
+            <USeparator />
 
             <!-- Index Section -->
             <div class="space-y-3">

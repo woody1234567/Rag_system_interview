@@ -4,6 +4,8 @@ import type {
   RagQueryRequest,
   RagQueryResponse,
   RagUploadResponse,
+  PingResponse,
+  ClearResponse,
 } from '../../../app/types/rag'
 
 interface CreateFastApiClientOptions {
@@ -41,6 +43,16 @@ export function createFastApiClient(options: CreateFastApiClientOptions) {
         timeout: 120000,
       })
     },
+    ping: () =>
+      fetcher<PingResponse>(`${base}/v1/rag/ping`, {
+        method: 'POST',
+        timeout: 10000,
+      }),
+    clear: () =>
+      fetcher<ClearResponse>(`${base}/v1/rag/clear`, {
+        method: 'POST',
+        timeout: 10000,
+      }),
   }
 }
 

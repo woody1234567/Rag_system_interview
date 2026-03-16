@@ -23,11 +23,17 @@ export function useRagApi() {
     })
   }
 
+  const ping = () => $fetch<{ status: string }>('/api/rag/ping', { method: 'POST' })
+
+  const clearFiles = () => $fetch<{ status: string }>('/api/rag/clear', { method: 'POST' })
+
   return {
     queryRag,
     buildIndex,
     checkHealth,
     uploadFile,
+    ping,
+    clearFiles
   }
 }
 

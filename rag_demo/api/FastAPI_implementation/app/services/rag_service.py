@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from threading import Lock
+import time
 from typing import Any
 
 
@@ -11,12 +12,29 @@ class RagServiceError(Exception):
 
 class RagService:
     _index_lock = Lock()
+    last_active_time = time.time()
 
-    @staticmethod
-    def requirements_dir() -> Path:
+    @classmethod
+    def ping(cls):
+        cls.last_active_time = time.time()
+
+    @classmethod
+    def requirements_dir(cls) -> Path:
         here = Path(__file__).resolve()
         api_root = here.parents[2]  # .../FastAPI_implementation
         return api_root / "requirements"
+
+    @classmethod
+    def clear_requirements(cls):
+        req_dir = cls.requirements_dir()
+        if not req_dir.exists():
+            return
+        
+        for file in req_dir.glob("*.pdf"):
+            try:
+                file.unlink()
+            except Exception:
+                pass
 
     @staticmethod
     def _import_core():
@@ -34,6 +52,7 @@ class RagService:
 
     @classmethod
     def query(cls, question: str, question_type: str | None = None) -> dict[str, Any]:
+        cls.ping()
         try:
             answer_question, _ = cls._import_core()
             return answer_question(question, question_type or "")
@@ -42,6 +61,7 @@ class RagService:
 
     @classmethod
     def build_index(cls) -> int:
+        cls.ping()
         if not cls._index_lock.acquire(blocking=False):
             raise RagServiceError("INDEX_BUILD_IN_PROGRESS")
         try:

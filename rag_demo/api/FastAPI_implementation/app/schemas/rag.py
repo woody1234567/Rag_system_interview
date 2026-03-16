@@ -25,4 +25,10 @@ class IndexResponse(BaseModel):
 
 class UploadResponse(BaseModel):
     filename: str
+
+class PingResponse(BaseModel):
+    status: str
+
+class ClearResponse(BaseModel):
+    status: str
     status: str = "uploaded"

@@ -26,3 +26,11 @@ export interface RagUploadResponse {
   filename: string
   status: string
 }
+
+export interface PingResponse {
+  status: string
+}
+
+export interface ClearResponse {
+  status: string
+}
