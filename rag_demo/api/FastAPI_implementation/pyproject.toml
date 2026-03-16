@@ -7,7 +7,11 @@ requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115.0",
   "uvicorn>=0.30.0",
+  "langchain-rag-app",
 ]
+
+[tool.uv.sources]
+langchain-rag-app = { path = "../langchain_rag", editable = true }
 
 [dependency-groups]
 dev = [
