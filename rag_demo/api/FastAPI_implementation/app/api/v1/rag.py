@@ -33,9 +33,14 @@ def index() -> IndexResponse:
     try:
         chunks = RagService.build_index()
     except RagServiceError as e:
-        code = "INDEX_BUILD_IN_PROGRESS" if str(e) == "INDEX_BUILD_IN_PROGRESS" else "RAG_INDEX_ERROR"
+        err_msg = str(e)
+        if "NO_PDF_FOUND" in err_msg:
+            raise HTTPException(
+                status_code=400, detail={"code": "NO_PDF_FOUND", "message": "尚未上傳任何檔案，無法建立索引"}
+            )
+        code = "INDEX_BUILD_IN_PROGRESS" if err_msg == "INDEX_BUILD_IN_PROGRESS" else "RAG_INDEX_ERROR"
         status = 409 if code == "INDEX_BUILD_IN_PROGRESS" else 500
-        raise HTTPException(status_code=status, detail={"code": code, "message": str(e)})
+        raise HTTPException(status_code=status, detail={"code": code, "message": err_msg})
     return IndexResponse(chunks=chunks)
 
 

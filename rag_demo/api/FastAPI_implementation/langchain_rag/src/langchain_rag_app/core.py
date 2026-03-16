@@ -54,9 +54,17 @@ def get_llm() -> ChatOpenAI:
 
 def build_index() -> int:
     cfg = load_config()
-    pdf_path = project_root() / cfg["pdf_path"]
-    loader = PyPDFLoader(str(pdf_path))
-    docs = loader.load()
+    req_dir = project_root() / "requirements"
+    pdf_files = list(req_dir.glob("*.pdf"))
+
+    if not pdf_files:
+        raise ValueError("NO_PDF_FOUND")
+
+    docs = []
+    # Load all PDFs found in the directory
+    for pdf_path in pdf_files:
+        loader = PyPDFLoader(str(pdf_path))
+        docs.extend(loader.load())
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=cfg["chunk_size"],

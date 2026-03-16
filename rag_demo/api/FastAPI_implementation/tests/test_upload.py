@@ -32,3 +32,24 @@ def test_upload_invalid_type(monkeypatch, tmp_path):
     r = c.post("/v1/rag/upload", files=files)
     assert r.status_code == 400
     assert r.json()["detail"]["code"] == "INVALID_FILE_TYPE"
+
+def test_index_empty_requirements(monkeypatch, tmp_path):
+    # Mock project_root so that requirements dir points to our empty tmp_path
+    monkeypatch.setattr("app.api.v1.rag.RagService.requirements_dir", lambda: tmp_path)
+    # Also need to mock project_root within langchain_rag's core since build_index calls it
+    monkeypatch.setattr("app.services.rag_service.RagService._import_core", lambda: (
+        lambda *args: {}, # mock query
+        lambda: _mock_build_index(tmp_path) # mock build index
+    ))
+    
+    def _mock_build_index(path):
+        pdf_files = list(path.glob("*.pdf"))
+        if not pdf_files:
+            raise ValueError("NO_PDF_FOUND")
+        return len(pdf_files)
+        
+    c = TestClient(app)
+    r = c.post("/v1/rag/index")
+    
+    assert r.status_code == 400
+    assert r.json()["detail"]["code"] == "NO_PDF_FOUND"

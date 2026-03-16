@@ -49,7 +49,11 @@ const runIndex = async () => {
     const res = await buildIndex()
     indexMsg.value = `建索引完成，chunks: ${res.chunks}`
   } catch (error: any) {
-    indexMsg.value = error?.data?.message || error?.message || '建索引失敗'
+    if (error?.data?.code === 'NO_PDF_FOUND') {
+      indexMsg.value = '建立索引失敗：目錄下尚未找到任何 PDF 檔案，請先在上方「上傳新文件」區塊上傳您的資料。'
+    } else {
+      indexMsg.value = error?.data?.message || error?.message || '建索引失敗'
+    }
   } finally {
     indexing.value = false
   }
